@@ -102,7 +102,7 @@ int main() {
 				unsigned long long rx = stats->rx_packets;
 				unsigned long long tx = stats->tx_packets;
 
-				printf("RX packets: %llu, TX packets: %llu\n", rx, tx);
+				printf("Interface %s: RX packets: %llu, TX packets: %llu\n", ifname, rx, tx);
 			}	
 		}
 	}
