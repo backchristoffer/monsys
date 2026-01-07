@@ -63,46 +63,47 @@ int main() {
     		perror("sendmsg");
     		return 1;
 		}
-
-	ssize_t len = recvmsg(nl_fd, &msg, 0);
-	if (len == -1) {
-    		perror("recvmsg");
-    		return 1;
-	}
-
-	for (struct nlmsghdr *nh = (struct nlmsghdr *)nlbuffer;
-     		NLMSG_OK(nh, len);
-     		nh = NLMSG_NEXT(nh, len))
-	{
-    		if (nh->nlmsg_type == NLMSG_DONE) {
-			break;
-		}
-
-		if (nh->nlmsg_type == NLMSG_ERROR) {
-			struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
-			if (err->error != 0) {
-				fprintf(stderr, "netlink error: %d\n", err->error);
-				return 1;
+	while (1) {
+		ssize_t len = recvmsg(nl_fd, &msg, 0);
+		if (len == -1) {
+    			perror("recvmsg");
+    			return 1;
 			}
-			continue;
-		}
 
-		struct ifinfomsg *ifi = (struct ifinfomsg *)NLMSG_DATA(nh);
-		struct rtattr *attr = (struct rtattr *)((char *)ifi + NLMSG_ALIGN(sizeof(*ifi)));
-		int attr_len = nh->nlmsg_len - NLMSG_LENGTH(sizeof(*ifi));
+		for (struct nlmsghdr *nh = (struct nlmsghdr *)nlbuffer;
+     			NLMSG_OK(nh, len);
+     			nh = NLMSG_NEXT(nh, len))
+			{
+    			if (nh->nlmsg_type == NLMSG_DONE) {
+				break;
+			}
+	
+			if (nh->nlmsg_type == NLMSG_ERROR) {
+				struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
+				if (err->error != 0) {
+					fprintf(stderr, "netlink error: %d\n", err->error);
+					return 1;
+				}	
+				continue;
+			}
 
-		for (; RTA_OK(attr, attr_len); attr = RTA_NEXT(attr, attr_len)) {
-			if (attr->rta_type == IFLA_STATS64) {
-				char ifname[IF_NAMESIZE];
-				if_indextoname(ifi->ifi_index, ifname);
+			struct ifinfomsg *ifi = (struct ifinfomsg *)NLMSG_DATA(nh);
+			struct rtattr *attr = (struct rtattr *)((char *)ifi + NLMSG_ALIGN(sizeof(*ifi)));
+			int attr_len = nh->nlmsg_len - NLMSG_LENGTH(sizeof(*ifi));
 
-				struct rtnl_link_stats64 *stats = 
-					(struct rtnl_link_stats64 *)RTA_DATA(attr);
+			for (; RTA_OK(attr, attr_len); attr = RTA_NEXT(attr, attr_len)) {
+				if (attr->rta_type == IFLA_STATS64) {
+					char ifname[IF_NAMESIZE];
+					if_indextoname(ifi->ifi_index, ifname);
 
-				unsigned long long rx = stats->rx_packets;
-				unsigned long long tx = stats->tx_packets;
+					struct rtnl_link_stats64 *stats = 
+						(struct rtnl_link_stats64 *)RTA_DATA(attr);
 
-				printf("Interface %s: RX packets: %llu, TX packets: %llu\n", ifname, rx, tx);
+					unsigned long long rx = stats->rx_packets;
+					unsigned long long tx = stats->tx_packets;
+
+					printf("Interface %s: RX packets: %llu, TX packets: %llu\n", ifname, rx, tx);
+				}
 			}	
 		}
 	}
@@ -112,7 +113,7 @@ int main() {
 
 
 
-	printf("hello netlink monitor\n");
+	printf("DEBUG:> END");
 	return 0;
 		
   }
