@@ -4,12 +4,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <net/if.h>
+#include <unistd.h>
+
 
 int main() {
 	
 	/*
 	 Tracking RX/TX 
 	 */
+	
+	// for debuggning 
+	setvbuf(stdout, NULL, _IONBF, 0);  // stdout = no buffering
+    	setvbuf(stderr, NULL, _IONBF, 0);  // stderr = no buffering
+	fprintf(stderr, "DEBUG: program started (pid=%d)\n", getpid());
 
 	struct sockaddr_nl addr;
 	int nl_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -62,7 +69,10 @@ int main() {
 	if (sendmsg(nl_fd, &msg, 0) == -1) {
     		perror("sendmsg");
     		return 1;
-		}
+	}
+	//debug
+	fprintf(stderr, "DEBUG: sendmsg ok\n");
+
 	while (1) { 
 		
 		iov.iov_base = nlbuffer;
