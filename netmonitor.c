@@ -63,13 +63,20 @@ int main() {
     		perror("sendmsg");
     		return 1;
 		}
-	while (1) {ssize_t len = recvmsg(nl_fd, &msg, 0); 
+	while (1) { 
+		
+		iov.iov_base = nlbuffer;
+    		iov.iov_len  = sizeof(nlbuffer);
+		
+		ssize_t len = recvmsg(nl_fd, &msg, 0);
 		
 		if (len == -1) { 
 			perror("recvmsg"); 
 			return 1; 
 		} 
 		
+		printf("DEBUG: recvmsg got %zd bytes\n", len);
+				
 		for (struct nlmsghdr *nh = (struct nlmsghdr *)nlbuffer; 
 				NLMSG_OK(nh, len); 
 				nh = NLMSG_NEXT(nh, len)){ 
