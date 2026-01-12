@@ -108,24 +108,37 @@ int main() {
 			struct rtattr *attr = (struct rtattr *)((char *)ifi + NLMSG_ALIGN(sizeof(*ifi))); 
 			int attr_len = nh->nlmsg_len - NLMSG_LENGTH(sizeof(*ifi)); 
 		
-			for (; RTA_OK(attr, attr_len); attr = RTA_NEXT(attr, attr_len)) { 
-				unsigned long long rx = 0; 
-				unsigned long long tx = 0; 
 			
-				if (attr->rta_type == IFLA_STATS64) { 
-					struct rtnl_link_stats64 *stats = (struct rtnl_link_stats64 *)RTA_DATA(attr); 
-					rx = stats->rx_packets; 
-					tx = stats->tx_packets; 
-				} else if (attr->rta_type == IFLA_STATS) { 
-					struct rtnl_link_stats *stats = (struct rtnl_link_stats *)RTA_DATA(attr); 
-					rx = stats->rx_packets; 
-					tx = stats->tx_packets; 
-				} else { continue; } 
-		
-				char ifname[IF_NAMESIZE]; if_indextoname(ifi->ifi_index, ifname); 
-		
-				printf("Interface %s: RX packets: %llu, TX packets: %llu\n", ifname, rx, tx); 
-			} 
+			unsigned long long rx = 0, tx = 0;
+			int got_stats = 0; //0 = none, 1 = 32bit, 2 = 64bit
+			
+			for (; RTA_OK(attr, attr_len); attr = RTA_NEXT(attr, attr_len)) {
+				if (attr->rta_type == IFLA_STATS64) {
+        				struct rtnl_link_stats64 *stats =
+            				(struct rtnl_link_stats64 *)RTA_DATA(attr);
+
+        				rx = stats->rx_packets;
+        				tx = stats->tx_packets;
+        				got_stats = 2;   // best available
+    				}
+    				else if (attr->rta_type == IFLA_STATS && got_stats < 2) {
+        				struct rtnl_link_stats *stats =
+            				(struct rtnl_link_stats *)RTA_DATA(attr);
+
+        				rx = stats->rx_packets;
+        				tx = stats->tx_packets;
+        				got_stats = 1;
+    				}
+			}
+
+			/* Print once (after scanning all attributes) */
+			if (got_stats) {
+    				char ifname[IF_NAMESIZE];
+    				if_indextoname(ifi->ifi_index, ifname);
+
+    				printf("Interface %s: RX packets: %llu, TX packets: %llu\n",ifname, rx, tx);
+			}	
+				
 		} 
 	}
 
